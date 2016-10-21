@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+  name: rabbitmq
+  labels:
+    app: rabbitmq-test
+spec:
+  ports:
+  - port: 5672
+    name: rabbitmq
+  clusterIP: None
+  selector:
+    app: rabbitmq-test
+---
+apiVersion: apps/v1alpha1
+kind: PetSet
+metadata:
+  name: rabbitmq
+spec:
+  serviceName: "rabbitmq"
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: rabbitmq-test
+      annotations:
+        pod.alpha.kubernetes.io/initialized: "true"
+    spec:
+      containers:
+      - name: rabbitmq
+        image: 127.0.0.1:31500/rabbitmq-clustered:latest
+        ports:
+        - containerPort: 5672
+          name: external-port
+        command:
+        - /sbin/startup.py
+        readinessProbe:
+          exec:
+            command:
+            - test
+            - -f
+            - "/tmp/rabbit_ready"
+          initialDelaySeconds: 1
+          timeoutSeconds: 5
